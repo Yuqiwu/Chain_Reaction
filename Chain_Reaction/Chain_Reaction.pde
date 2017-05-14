@@ -21,11 +21,12 @@ boolean reactionStarted = false;
 
 /** Set up the animation.
  */
+@Override
 void setup() {
   fullScreen();
   background(0);
   ellipseMode(CENTER);
-  for ( int i = 0; i < 10 + random(40); i++ ) {
+  for ( int i = 0; i < 100 + random(100); i++ ) {
     Ball b = new Ball(INITIAL_RADIUS);
     ACTIVE.add(b);
     INITIAL.add(b);
@@ -35,6 +36,7 @@ void setup() {
 /** Updates the display.
  * Calculates new states of balls and acts accordingly.
  */
+@Override
 void draw() {
   clear();
   for ( Ball b : ACTIVE ) {
@@ -53,6 +55,10 @@ void draw() {
     grow();
     shrink();
   }
+
+  if ( ACTIVE.size() == 0 ) {
+    exit();
+  }
 }
 
 /** Checks to see if two balls are touching.
@@ -60,15 +66,24 @@ void draw() {
  */
 void react() {
   // TODO: This is an expensive operation. Optimize?
-  for ( int i = 0; i < INITIAL.size(); i++ ) {
-    for ( int j = i + 1; j < INITIAL.size(); j++ ) {
+  for ( int i = 0; i < ACTIVE.size(); i++ ) {
+    for ( int j = i + 1; j < ACTIVE.size(); j++ ) {
       float _dist = dist(
-          INITIAL.get(i).x, INITIAL.get(i).y,
-          INITIAL.get(j).x, INITIAL.get(j).y);
-      if ( _dist < INITIAL_RADIUS ) {
-        // removing min first will alter the position of max
-        GROWING.add(INITIAL.remove(max(i, j)));
-        GROWING.add(INITIAL.remove(min(i, j)));
+          ACTIVE.get(i).x, ACTIVE.get(i).y,
+          ACTIVE.get(j).x, ACTIVE.get(j).y);
+      float _rad = (ACTIVE.get(i).radius + ACTIVE.get(j).radius) / 2;
+
+      if ( _dist <= _rad ) {
+        // only add balls if they haven't started growing yet
+        Ball _i = ACTIVE.get(i);
+        if ( INITIAL.remove(_i) ) {
+          GROWING.add(_i);
+        }
+
+        Ball _j = ACTIVE.get(j);
+        if ( INITIAL.remove(_j) ) {
+          GROWING.add(_j);
+        }
       }
     }
   }
@@ -95,6 +110,7 @@ void shrink() {
     SHRINKING.get(i).radius -= GROW;
 
     if ( SHRINKING.get(i).radius < 0 ) {
+      ACTIVE.remove(SHRINKING.get(i));
       GONE.add(SHRINKING.remove(i));
     }
   }

@@ -1,16 +1,16 @@
 import java.util.ArrayList;
 
-/* ACTIVE    -- all balls that are not GONE
+/* ALL       -- all visible balls
  * INITIAL   -- balls that have not undergone reaction yet
+ * ACTIVE    -- balls that are reacting
  * GROWING   -- balls that are currently increasing in size
  * SHRINKING -- balls that are currently decreasing in size
- * GONE      -- balls that have shrunk to nothing
  */
-final ArrayList<Ball> ACTIVE    = new ArrayList<Ball>();
+final ArrayList<Ball> ALL       = new ArrayList<Ball>();
 final ArrayList<Ball> INITIAL   = new ArrayList<Ball>();
 final ArrayList<Ball> GROWING   = new ArrayList<Ball>();
 final ArrayList<Ball> SHRINKING = new ArrayList<Ball>();
-final ArrayList<Ball> GONE      = new ArrayList<Ball>();
+final ArrayList<Ball> ACTIVE    = new ArrayList<Ball>();
 
 final float INITIAL_RADIUS = 30;
 final int   GROW           = 1;
@@ -25,10 +25,11 @@ boolean reactionStarted = false;
 void setup() {
   fullScreen();
   background(0);
+  noStroke();
   ellipseMode(CENTER);
   for ( int i = 0; i < 100 + random(100); i++ ) {
     Ball b = new Ball(INITIAL_RADIUS);
-    ACTIVE.add(b);
+    ALL.add(b);
     INITIAL.add(b);
   }
 }
@@ -39,7 +40,7 @@ void setup() {
 @Override
 void draw() {
   clear();
-  for ( Ball b : ACTIVE ) {
+  for ( Ball b : ALL ) {
     fill(b.COLOR);
     ellipse(b.x, b.y, b.radius, b.radius);
   }
@@ -56,8 +57,12 @@ void draw() {
     shrink();
   }
 
-  if ( ACTIVE.size() == 0 ) {
+  if ( ALL.size() == 0 ) {
     exit();
+  }
+
+  if ( ACTIVE.size() == 0 ) {
+    reactionStarted = false;
   }
 }
 
@@ -67,21 +72,17 @@ void draw() {
 void react() {
   // TODO: This is an expensive operation. Optimize?
   for ( int i = 0; i < ACTIVE.size(); i++ ) {
-    for ( int j = i + 1; j < ACTIVE.size(); j++ ) {
+    for ( int j = 0; j < ALL.size(); j++ ) {
       float _dist = dist(
           ACTIVE.get(i).x, ACTIVE.get(i).y,
-          ACTIVE.get(j).x, ACTIVE.get(j).y);
-      float _rad = (ACTIVE.get(i).radius + ACTIVE.get(j).radius) / 2;
+          ALL.get(j).x, ALL.get(j).y);
+      float _rad = (ACTIVE.get(i).radius + ALL.get(j).radius) / 2;
 
       if ( _dist <= _rad ) {
         // only add balls if they haven't started growing yet
-        Ball _i = ACTIVE.get(i);
-        if ( INITIAL.remove(_i) ) {
-          GROWING.add(_i);
-        }
-
-        Ball _j = ACTIVE.get(j);
+        Ball _j = ALL.get(j);
         if ( INITIAL.remove(_j) ) {
+          ACTIVE.add(_j);
           GROWING.add(_j);
         }
       }
@@ -110,8 +111,8 @@ void shrink() {
     SHRINKING.get(i).radius -= GROW;
 
     if ( SHRINKING.get(i).radius < 0 ) {
-      ACTIVE.remove(SHRINKING.get(i));
-      GONE.add(SHRINKING.remove(i));
+      ALL.remove(SHRINKING.remove(i));
+      ACTIVE.remove(i);
     }
   }
 }
@@ -123,6 +124,7 @@ void mouseClicked() {
   if (!reactionStarted) {
     reactionStarted = true;
     Ball b = new Ball(INITIAL_RADIUS, mouseX, mouseY);
+    ALL.add(b);
     ACTIVE.add(b);
     GROWING.add(b);
   }
